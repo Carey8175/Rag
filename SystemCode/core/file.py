@@ -1,8 +1,8 @@
 import ssl
-from typing import List, Union, Callable
+from typing import List, Union, Callable, Optional
 from SystemCode.configs.basic import SENTENCE_SIZE
 from SystemCode.utils.chinese_text_splitter import ChineseTextSplitter
-from SystemCode.utils.loader import UnstructuredPaddleImageLoader, UnstructuredPaddlePDFLoader
+from SystemCode.utils.loader import UnstructuredPaddleImageLoader, UnstructuredPaddlePDFLoader, URLToTextConverter
 from langchain_community.document_loaders import UnstructuredFileLoader, TextLoader, UnstructuredWordDocumentLoader
 
 
@@ -11,12 +11,12 @@ ssl._create_default_https_context = ssl._create_unverified_context
 
 
 class File:
-    def __init__(self, file_id, kb_id, file_name, file_path):
+    def __init__(self, file_id, kb_id, file_name, file_path, url):
         self.file_id = file_id
         self.kb_id = kb_id
         self.file_name = file_name
         self.file_path = file_path
-
+        self.url = url
         self._init_type()
 
     def __str__(self):
@@ -26,16 +26,21 @@ class File:
         return self.__str__()
 
     def _init_type(self):
-        if self.file_path.lower().endswith(".md"):
-            self.type = "md"
-        elif self.file_path.lower().endswith(".txt"):
-            self.type = "txt"
-        elif self.file_path.lower().endswith(".pdf"):
-            self.type = "pdf"
-        elif self.file_path.lower().endswith(".jpg") or self.file_path.lower().endswith(".png") or self.file_path.lower().endswith(".jpeg"):
-            self.type = "img"
-        elif self.file_path.lower().endswith(".docx"):
-            self.type = "docx"
+        if self.file_path:
+            if self.file_path.lower().endswith(".md"):
+                self.type = "md"
+            elif self.file_path.lower().endswith(".txt"):
+                self.type = "txt"
+            elif self.file_path.lower().endswith(".pdf"):
+                self.type = "pdf"
+            elif self.file_path.lower().endswith((".jpg", ".jpeg", ".png")):
+                self.type = "img"
+            elif self.file_path.lower().endswith(".docx"):
+                self.type = "docx"
+            else:
+                self.type = None
+        elif self.url:
+            self.type = "url"
         else:
             self.type = None
 
@@ -45,6 +50,7 @@ class File:
             "kb_id": self.kb_id,
             "file_name": self.file_name,
             "file_path": self.file_path,
+            "file_url": self.url,
             "type": self.type
         }
 
@@ -67,6 +73,10 @@ class File:
         elif self.type == "docx":
             loader = UnstructuredWordDocumentLoader(self.file_path, mode="elements")
             docs = loader.load()
+        elif self.type == "url":
+            loader = URLToTextConverter(self.url)
+            texts_splitter = ChineseTextSplitter(pdf=False, sentence_size=sentence_size)
+            docs = loader.load_and_split(texts_splitter)
         else:
             docs = []
 
@@ -78,6 +88,9 @@ if __name__ == '__main__':
     from paddleocr import PaddleOCR
 
     ocr_engine = PaddleOCR(use_angle_cls=True, lang="ch", use_gpu=False, show_log=True)
-    file = File(uuid.uuid4().hex, uuid.uuid4().hex, "S-PSUPR Day1b.pdf", "S-PSUPR Day1b.pdf")
-    docs = file.split_file(ocr_engine)
+    # file = File(uuid.uuid4().hex, uuid.uuid4().hex, "S-PSUPR Day1b.pdf", "S-PSUPR Day1b.pdf")
+    # docs = file.split_file(ocr_engine)
+
+    url_file = File(uuid.uuid4().hex, uuid.uuid4().hex, "wind.com.cn", None, url="https://wind.com.cn")
+    url_docs = url_file.split_file(ocr_engine)
     2

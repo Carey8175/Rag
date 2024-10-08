@@ -1,6 +1,5 @@
 """Loader that loads image files."""
 from typing import List, Callable
-
 from langchain_community.document_loaders.unstructured import UnstructuredFileLoader
 from unstructured.partition.text import partition_text
 import os
@@ -23,6 +22,7 @@ class UnstructuredPaddlePDFLoader(UnstructuredFileLoader):
         """Initialize with file path."""
         self.ocr_engine = ocr_engine
         super().__init__(file_path=file_path, mode=mode, **unstructured_kwargs)
+
 
     def _get_elements(self) -> List:
         def pdf_ocr_txt(filepath, dir_path="tmp_files"):

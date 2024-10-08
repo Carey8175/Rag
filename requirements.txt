@@ -13,3 +13,5 @@ BCEmbedding
 pymilvus
 paddlepaddle
 paddleocr
+requests
+bs4
